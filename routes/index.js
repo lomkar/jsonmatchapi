@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
-const { apiUrl, webappUrl } = require("./config");
+const { apiUrl, webappUrl } = require("../config");
 const prisma = new PrismaClient();
 router.post("/public", async (req, res) => {
   try {
