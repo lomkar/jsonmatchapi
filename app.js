@@ -7,7 +7,7 @@ const app = express();
 const { PrismaClient } = require("@prisma/client");
 const { apiUrl, webappUrl } = require("./config");
 const prisma = new PrismaClient();
-
+app.use(cors())
 app.use(bodyParser.json());
 
 app.use(morgan("dev"));
@@ -15,9 +15,8 @@ app.use(morgan("dev"));
 const port = process.env.PORT || 3001;
 
 //My Routes
-app.use(cors({
-  origin:["https://jsonmatchweb.vercel.app"]
-}));
+
+
 app.get("/api",(req,res)=>{
   return res.json({
     success:true,
