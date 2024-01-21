@@ -15,7 +15,9 @@ app.use(morgan("dev"));
 const port = process.env.PORT || 3001;
 
 //My Routes
-app.use(cors());
+app.use(cors({
+  origin:["https://jsonmatchweb.vercel.app"]
+}));
 app.get("/api",(req,res)=>{
   return res.json({
     success:true,
