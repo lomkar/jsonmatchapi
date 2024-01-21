@@ -19,6 +19,13 @@ app.use(morgan("dev"));
 const port = process.env.PORT || 3001;
 
 //My Routes
+
+app.get("/api",(req,res)=>{
+  return res.json({
+    success:true,
+    message:"API is working"
+  })
+})
 app.post("/api/public", async (req, res) => {
   try {
     const { jsonData } = req.body;
