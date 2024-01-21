@@ -5,11 +5,10 @@ const cors = require("cors");
 var morgan = require("morgan");
 const app = express();
 const { PrismaClient } = require("@prisma/client");
-const { apiUrl, webappUrl } = require("./config");
-const prisma = new PrismaClient();
+
 const routes = require("./routes/index");
 
-app.use(morgan("dev"));
+// app.use(morgan("dev"));
 
 const port = process.env.PORT || 3001;
 
