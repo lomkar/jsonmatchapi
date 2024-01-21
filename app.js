@@ -14,26 +14,24 @@ const port = process.env.PORT || 3001;
 
 //My Routes
 // Define CORS options
-const corsOptions = {
-  origin: "http://example.com", // or an array of allowed origins
-  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-  credentials: true, // enable cookies from the client
-  optionsSuccessStatus: 204, // some legacy browsers (IE11, various SmartTVs) choke on 204
-};
+// const corsOptions = {
+//   origin: "http://example.com", // or an array of allowed origins
+//   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+//   credentials: true, // enable cookies from the client
+//   optionsSuccessStatus: 204, // some legacy browsers (IE11, various SmartTVs) choke on 204
+// };
 
 // Enable CORS with specific options
-app.use(cors(corsOptions));
+// app.use(cors(corsOptions));
+app.use(cors({ origin: "*" }));
 
-app.use((req, res, next) => {
-  if (req.url === '/favicon.ico') {
-    return res.status(204).end();
-  }
-  console.log("Request received:", req.method, req.url);
-  res.on("finish", () => {
-    console.log("Response sent:", res.statusCode);
-  });
-  next();
-});
+// app.use((req, res, next) => {
+//   console.log("Request received:", req.method, req.url);
+//   res.on("finish", () => {
+//     console.log("Response sent:", res.statusCode);
+//   });
+//   next();
+// });
 app.get("/api", (req, res) => {
   return res.json({
     success: true,
