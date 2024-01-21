@@ -9,11 +9,8 @@ const { apiUrl, webappUrl } = require("./config");
 const prisma = new PrismaClient();
 
 app.use(bodyParser.json());
-app.use(
-  cors({
-    origin: webappUrl,
-  })
-);
+app.use(cors());
+
 app.use(morgan("dev"));
 
 const port = process.env.PORT || 3001;
