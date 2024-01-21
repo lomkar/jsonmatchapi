@@ -2,12 +2,12 @@ require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
-var morgan = require("morgan");
+// var morgan = require("morgan");
 const app = express();
 
 
 const routes = require("./routes/index");
-
+app.use(express.json());
 // app.use(morgan("dev"));
 
 const port = process.env.PORT || 3001;
@@ -23,6 +23,7 @@ const port = process.env.PORT || 3001;
 
 // Enable CORS with specific options
 // app.use(cors(corsOptions));
+// app.use(bodyParser.json());
 app.use(cors({ origin: "*" }));
 
 // app.use((req, res, next) => {
@@ -40,7 +41,7 @@ app.get("/api", (req, res) => {
 });
 
 app.use("/api", routes);
-app.use(bodyParser.json());
+
 
 //catch 404 errors and forwared then to error handler
 app.use((req, res, next) => {

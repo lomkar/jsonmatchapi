@@ -6,6 +6,7 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 router.post("/public", async (req, res) => {
   try {
+    console.log("REQ BODY ",req.body)
     const { jsonData } = req.body;
     const result = await prisma.publicJsonData.create({
       data: {
