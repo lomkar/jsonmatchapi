@@ -8,11 +8,6 @@ const { PrismaClient } = require("@prisma/client");
 const { apiUrl, webappUrl } = require("./config");
 const prisma = new PrismaClient();
 
-app.use(function (request, response, next) {
-  response.header("Access-Control-Allow-Origin", "*");
-  response.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-  next();
-});
 app.use(bodyParser.json());
 
 app.use(morgan("dev"));
@@ -20,7 +15,7 @@ app.use(morgan("dev"));
 const port = process.env.PORT || 3001;
 
 //My Routes
-
+app.use(cors());
 app.get("/api",(req,res)=>{
   return res.json({
     success:true,
