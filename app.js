@@ -4,7 +4,7 @@ const bodyParser = require("body-parser");
 const cors = require("cors");
 var morgan = require("morgan");
 const app = express();
-const { PrismaClient } = require("@prisma/client");
+
 
 const routes = require("./routes/index");
 
