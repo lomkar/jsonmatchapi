@@ -5,7 +5,6 @@ const cors = require("cors");
 // var morgan = require("morgan");
 const app = express();
 
-
 const routes = require("./routes/index");
 app.use(express.json());
 // app.use(morgan("dev"));
@@ -24,7 +23,9 @@ const port = process.env.PORT || 3001;
 // Enable CORS with specific options
 // app.use(cors(corsOptions));
 // app.use(bodyParser.json());
-app.use(cors({ origin: "*" }));
+app.use(
+  cors({ origin: ["https://jsonmatchweb.vercel.app"], credentials: true })
+);
 
 // app.use((req, res, next) => {
 //   console.log("Request received:", req.method, req.url);
@@ -41,7 +42,6 @@ app.get("/api", (req, res) => {
 });
 
 app.use("/api", routes);
-
 
 //catch 404 errors and forwared then to error handler
 app.use((req, res, next) => {
