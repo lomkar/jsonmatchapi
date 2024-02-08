@@ -2,7 +2,7 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   binaryTargets = ["native", "rhel-openssl-1.0.x"]
 }
 
@@ -15,7 +15,86 @@ model test {
   id String @id @default(auto()) @map("_id") @db.ObjectId
 }
 
+model User {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  username        String
+  name            String?
+  email           String?  @unique
+  password        String?
+  birthdate       String?
+  gender          String?
+  authType        String?
+  cognitouserid   String?
+  isemailverified Boolean  @default(false)
+  createdat       DateTime @default(now())
+  updatedat       DateTime @updatedAt
+}
+
 model PublicJsonData {
   id       String @id @default(auto()) @map("_id") @db.ObjectId
   JsonData Json
+}
+
+////////API Generate fake data////////////
+
+model UserDummy {
+  id           String            @id @default(auto()) @map("_id") @db.ObjectId
+  name         String?
+  username     String?
+  email        String?
+  gender       String?
+  address      AddressUserDummy?
+  company      CompanyUserDummy?
+  phone        String?
+  website      String?
+  profilePhoto String[]
+}
+
+// Embed the Address schema directly within the User model
+model AddressUserDummy {
+  id      String        @id @default(auto()) @map("_id") @db.ObjectId
+  street  String?
+  suite   String?
+  city    String?
+  zipcode String?
+  userid  String        @unique() @db.ObjectId
+  user    UserDummy     @relation(fields: [userid], references: [id])
+  geo     GeoUserDummy?
+}
+
+// Define your Geo schema
+model GeoUserDummy {
+  id        String           @id @default(auto()) @map("_id") @db.ObjectId
+  lat       String?
+  lng       String?
+  addressid String           @unique() @db.ObjectId
+  address   AddressUserDummy @relation(fields: [addressid], references: [id])
+}
+
+// // Define your Company schema
+model CompanyUserDummy {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  name        String?
+  catchPhrase String?
+  bs          String?
+  userid      String    @unique() @db.ObjectId
+  user        UserDummy @relation(fields: [userid], references: [id])
+}
+
+model ProductDummy {
+  id          String              @id @default(auto()) @map("_id") @db.ObjectId
+  title       String?
+  price       Int?
+  description String?
+  category    String?
+  images       String[]
+  rating      RatingProductDummy?
+}
+
+model RatingProductDummy {
+  id        String       @id @default(auto()) @map("_id") @db.ObjectId
+  rate      Int
+  count     Int
+  productid String       @unique() @db.ObjectId
+  user      ProductDummy @relation(fields: [productid], references: [id])
 }
