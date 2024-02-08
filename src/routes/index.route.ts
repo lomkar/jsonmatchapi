@@ -28,7 +28,6 @@ const generateRoutesForArray = (publicId: string) => {
   const subRouter = express.Router();
 
   subRouter.get("/:id", async (req, res) => {
-    console.log("HEELO");
     PublicJsonData.aggregate([
       { $match: { _id: publicIdObject } },
       { $unwind: "$jsondata" },
@@ -56,27 +55,38 @@ const generateRoutesForArray = (publicId: string) => {
       .catch((error: any) => console.error(error));
   });
 
-  subRouter.put("/:id", (req, res) => {
+  subRouter.put("/:id", async (req, res) => {
     const updateFields = req.body; // Assuming the request body contains the updated fields
 
     delete updateFields.id;
     let updateObject: any = {};
-    for (let key in updateFields) {
-      updateObject[`jsondata.$.${key}`] = updateFields[key];
+
+    const existingData = await PublicJsonData.aggregate([
+      { $match: { _id: publicIdObject } },
+      { $unwind: "$jsondata" },
+      { $match: { "jsondata.id": req.params.id } },
+      { $replaceRoot: { newRoot: "$jsondata" } },
+    ]);
+
+    if (existingData.length === 0) {
+      return res.status(404).json({ message: "Data not found" });
     }
 
+    // Update only the specified fields from req.body
+    const newData = { ...existingData[0], ...req.body };
+
+    // Update the document with the modified jsondata
     PublicJsonData.updateOne(
-      { _id: publicIdObject, "jsondata.$.id": req.params.id },
-      { $set: updateObject }
+      { _id: publicIdObject, [`jsondata.id`]: req.params.id },
+      { $set: { [`jsondata.$`]: newData } }
     )
-      .then((result: any) => {
-        // Check result and handle accordingly
-        console.log(result);
-        return res.json(result);
+      .then((results: any) => {
+        console.log(results);
+        return res.status(200).json(results);
       })
       .catch((error: any) => {
-        console.error(error);
-        res.status(500).json({ error: "Internal Server Error" });
+        console.log(error);
+        return res.status(400).json(error);
       });
   });
 
@@ -90,13 +100,9 @@ const generateRoutes = (
 ) => {
   const subRouter = express.Router();
 
+  let publicIdObject = new ObjectId(publicId);
   if (Array.isArray(resourceData)) {
-    let publicIdObject = new ObjectId(publicId);
-    console.log("Comming")
-    
-
     subRouter.get("/:id", async (req, res) => {
-      console.log("HEELO");
       PublicJsonData.aggregate([
         { $match: { _id: publicIdObject } },
         { $unwind: `$jsondata.${resource}` },
@@ -124,76 +130,52 @@ const generateRoutes = (
         .catch((error: any) => console.error(error));
     });
 
-    subRouter.put("/:id", (req, res) => {
+    subRouter.put("/:id", async (req, res) => {
       const updateFields = req.body; // Assuming the request body contains the updated fields
 
       delete updateFields.id;
-      let updateObject: any = {};
-      for (let key in updateFields) {
-        updateObject[`jsondata.${resource}.$.${key}`] = updateFields[key];
+
+      const existingData = await PublicJsonData.aggregate([
+        { $match: { _id: publicIdObject } },
+        { $unwind: `$jsondata.${resource}` },
+        { $match: { [`jsondata.${resource}.id`]: req.params.id } },
+        { $replaceRoot: { newRoot: `$jsondata.${resource}` } },
+      ]);
+
+      console.log("Existing data =>", existingData);
+      if (existingData.length === 0) {
+        return res.status(404).json({ message: "Data not found" });
       }
 
-      console.log("updateObject",updateObject)
+      // Update only the specified fields from req.body
+      const newData = { ...existingData[0], ...req.body };
 
+      console.log("NEW DATA => ", newData);
+
+      // Update the document with the modified jsondata
       PublicJsonData.updateOne(
-        { _id: publicIdObject, [`jsondata.${resource}.$.id`]: req.params.id },
-        { $set: updateObject }
+        { _id: publicIdObject, [`jsondata.${resource}.id`]: req.params.id },
+        { $set: { [`jsondata.${resource}.$`]: newData } }
       )
-        .then((result: any) => {
-          // Check result and handle accordingly
-          console.log(result);
-          return res.json(result);
+        .then((results: any) => {
+          console.log(results);
+          return res.status(200).json(results);
         })
         .catch((error: any) => {
-          console.error(error);
-          res.status(500).json({ error: "Internal Server Error" });
+          console.log(error);
+          return res.status(400).json(error);
         });
     });
   } else if (typeof resourceData === "object") {
     subRouter.get("/", async (req: Request, res: Response) => {
       try {
-        /*
-        const publicid = req.params.publicid;
-        const dataResult = await prisma.publicJsonData.findFirst({
-          where: {
-            id: publicid,
-          },
-          select: {
-            id: true,
-            JsonData: true,
-          },
-        });
-
-        if (!dataResult) {
-          throw new InfoError("No Data found");
-        }
-
-        if (dataResult.JsonData && typeof dataResult.JsonData === "object") {
-          const jsonData = dataResult.JsonData as
-            | JsonDataWithId
-            | JsonDataWithId;
-
-          if (typeof jsonData[resource] !== "undefined") {
-            return res.json({
-              success: true,
-              publicid: dataResult.id,
-              data: jsonData[resource],
-            });
-          } else {
-            return res.json({
-              success: false,
-              data: null,
-              error: `Property '${resource}' not found in JsonData.`,
-            });
-          }
-        } else {
-          return res.json({
-            success: false,
-            data: null,
-            error: "JsonData is null or not an object.",
+        PublicJsonData.findById(publicIdObject)
+          .then((results: any) => {
+            return res.status(200).json(results.jsonData);
+          })
+          .catch((error: any) => {
+            return res.status(400).json(error);
           });
-        }
-        */
       } catch (error: any) {
         console.error(error);
         throw new InfoError(error);
@@ -289,12 +271,66 @@ const getPublicJsonRoute = async (
 ) => {
   try {
     const { publicid } = req.params;
-
+    let publicIdObject = new ObjectId(publicid);
     const publicJSONData = await PublicJsonData.findById(publicid);
 
     if (publicJSONData && publicJSONData.jsondata) {
       router.get("/", (req, res) => {
         return res.json(publicJSONData.jsondata);
+      });
+
+      /*
+      router.post("/", async (req, res) => {
+        try {
+          const dataBody = req.body;
+          // Find the document by ID and update it
+          const updatedDocument = await PublicJsonData.findByIdAndUpdate(
+            publicid,
+            dataBody,
+            { new: true } // Return the updated document
+          );
+
+          // Check if the document was found and updated
+          if (updatedDocument) {
+            console.log("Document updated successfully:", updatedDocument);
+
+          } else {
+            console.log("Document not found");
+          }
+        } catch (error: any) {
+          console.error("Error updating document:", error.message);
+        }
+      });
+
+      */
+      router.put("/", async (req, res) => {
+        try {
+          const dataBody = req.body;
+          // Find the document by ID and update it
+          const dataResult = await PublicJsonData.findById(publicid);
+
+          // Check if the document was found and updated
+          if (dataResult) {
+            let newUpdatedData = { ...dataResult.jsondata, ...dataBody };
+            const updatedDocument = await PublicJsonData.findOneAndUpdate(
+              { _id: publicIdObject },
+              { $set: { jsondata: newUpdatedData } },
+              { new: true } // Return the updated document
+            );
+            return res.status(200).json({
+              updatedDocument
+            })
+          } else {
+            console.log("Document not found");
+            return res.status(400).json("Document not found");
+          }
+        } catch (error: any) {
+          console.error("Error updating document:", error.message);
+          return res.status(400).json({
+            APIERROR: "Error updating document ",
+            message: error.message,
+          });
+        }
       });
 
       if (Array.isArray(publicJSONData.jsondata)) {
