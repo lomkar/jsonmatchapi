@@ -3,6 +3,12 @@ const Schema = mongoose.Schema;
 
 const PublicJsonData = new Schema(
   {
+    routetype: {
+      type: String,
+      default: "object",
+      required: false,
+    },
+    routeslist: Schema.Types.Mixed,
     jsondata: Schema.Types.Mixed,
     requestcount: {
       type: Number,
@@ -14,6 +20,5 @@ const PublicJsonData = new Schema(
     timestamps: true,
   }
 );
-
 
 module.exports = mongoose.model("publicjsondata", PublicJsonData);

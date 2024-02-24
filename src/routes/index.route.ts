@@ -93,7 +93,7 @@ const generateRoutesForArray = (publicId: string) => {
   return subRouter;
 };
 
-const generateRoutes = (
+export const generateRoutes = (
   resource: string,
   publicId: string,
   resourceData: any
@@ -318,8 +318,8 @@ const getPublicJsonRoute = async (
               { new: true } // Return the updated document
             );
             return res.status(200).json({
-              updatedDocument
-            })
+              updatedDocument,
+            });
           } else {
             console.log("Document not found");
             return res.status(400).json("Document not found");
