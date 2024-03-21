@@ -2,10 +2,14 @@ import express, { NextFunction, Request, Response } from "express";
 import { generateUniqueIdToJson } from "../helpers/public.helper";
 import InfoError from "../errors/InfoError";
 import { JsonDataWithId, generateRoutes } from "./index.route";
+import rateLimiter from "../middleware/rate-limiter";
+import { checkJsonSize } from "../middleware/checkjsonsize";
 const PublicJsonData = require("../models/publicjsondata");
 const router = express.Router();
 
-router.post("/", async (req: Request, res: Response) => {
+// rateLimiter({ secondsWindow: 60, allowedHits: 20 }) as any,
+
+router.post("/", checkJsonSize, async (req: Request, res: Response) => {
   try {
     let newData = req.body;
     newData = generateUniqueIdToJson(newData);
@@ -14,7 +18,7 @@ router.post("/", async (req: Request, res: Response) => {
       jsondata: newData,
     });
     const result = await document.save();
-  
+
     let routesList: any = [];
     let routeType = "array";
     if (Array.isArray(result.jsondata)) {
@@ -43,8 +47,8 @@ router.post("/", async (req: Request, res: Response) => {
     const updatedDocument = await PublicJsonData.findByIdAndUpdate(
       result._id,
       {
-        routetype:routeType,
-        routeslist:routesList
+        routetype: routeType,
+        routeslist: routesList,
       }, // req.body should contain the updated data
       { new: true, runValidators: true } // options: new returns the modified document, runValidators ensures validation is applied
     );

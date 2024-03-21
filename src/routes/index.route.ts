@@ -26,7 +26,15 @@ export interface JsonDataWithId {
 const generateRoutesForArray = (publicId: string) => {
   let publicIdObject = new ObjectId(publicId);
   const subRouter = express.Router();
-
+  subRouter.get("/", async (req, res) => {
+    PublicJsonData.findById(publicIdObject)
+      .then((results: any) => {
+        return res.status(200).json(results.jsonData);
+      })
+      .catch((error: any) => {
+        return res.status(400).json(error);
+      });
+  });
   subRouter.get("/:id", async (req, res) => {
     PublicJsonData.aggregate([
       { $match: { _id: publicIdObject } },
@@ -96,13 +104,32 @@ const generateRoutesForArray = (publicId: string) => {
 export const generateRoutes = (
   resource: string,
   publicId: string,
-  resourceData: any
+  resourcetype: any
 ) => {
   const subRouter = express.Router();
 
   let publicIdObject = new ObjectId(publicId);
-  if (Array.isArray(resourceData)) {
+  // if (Array.isArray(resourcetype)) {
+  if (resourcetype === "array") {
+    subRouter.get("/", async (req, res) => {
+      // const resource = 'user'; // Assuming resource is set to 'user'
+
+      PublicJsonData.aggregate([
+        { $unwind: `$jsondata.${resource}` },
+        { $replaceRoot: { newRoot: `$jsondata.${resource}` } },
+      ])
+        .then((results: any) => {
+          if (results.length > 0) {
+            return res.json(results);
+          }
+          return res.json(null);
+        })
+        .catch((error: any) => console.error(error));
+    });
+    console.log("COMMING1")
+
     subRouter.get("/:id", async (req, res) => {
+      console.log("COMMING2") 
       PublicJsonData.aggregate([
         { $match: { _id: publicIdObject } },
         { $unwind: `$jsondata.${resource}` },
@@ -113,7 +140,10 @@ export const generateRoutes = (
           if (results.length > 0) {
             return res.json(results[0]);
           }
-          return res.json(null);
+          return res.status(400).json({
+            success:false,
+            message:"No data found"
+          });
         })
         .catch((error: any) => console.error(error));
     });
@@ -166,7 +196,7 @@ export const generateRoutes = (
           return res.status(400).json(error);
         });
     });
-  } else if (typeof resourceData === "object") {
+  } else if (resourcetype === "object") {
     subRouter.get("/", async (req: Request, res: Response) => {
       try {
         PublicJsonData.findById(publicIdObject)
@@ -272,88 +302,92 @@ const getPublicJsonRoute = async (
   try {
     const { publicid } = req.params;
     let publicIdObject = new ObjectId(publicid);
-    const publicJSONData = await PublicJsonData.findById(publicid);
 
-    if (publicJSONData && publicJSONData.jsondata) {
-      router.get("/", (req, res) => {
+    const publicJSONData = await PublicJsonData.findById(publicid).select(
+      "id routetype routeslist"
+    );
+    if (!publicJSONData) {
+      return res.status(400).json({
+        message: "No data found",
+        success: false,
+      });
+    }
+    // if (publicJSONData && publicJSONData.jsondata) {
+    router.get("/", async (req, res) => {
+      try {
+        const publicJSONData = await PublicJsonData.findById(publicid);
         return res.json(publicJSONData.jsondata);
-      });
-
-      /*
-      router.post("/", async (req, res) => {
-        try {
-          const dataBody = req.body;
-          // Find the document by ID and update it
-          const updatedDocument = await PublicJsonData.findByIdAndUpdate(
-            publicid,
-            dataBody,
-            { new: true } // Return the updated document
-          );
-
-          // Check if the document was found and updated
-          if (updatedDocument) {
-            console.log("Document updated successfully:", updatedDocument);
-
-          } else {
-            console.log("Document not found");
-          }
-        } catch (error: any) {
-          console.error("Error updating document:", error.message);
-        }
-      });
-
-      */
-      router.put("/", async (req, res) => {
-        try {
-          const dataBody = req.body;
-          // Find the document by ID and update it
-          const dataResult = await PublicJsonData.findById(publicid);
-
-          // Check if the document was found and updated
-          if (dataResult) {
-            let newUpdatedData = { ...dataResult.jsondata, ...dataBody };
-            const updatedDocument = await PublicJsonData.findOneAndUpdate(
-              { _id: publicIdObject },
-              { $set: { jsondata: newUpdatedData } },
-              { new: true } // Return the updated document
-            );
-            return res.status(200).json({
-              updatedDocument,
-            });
-          } else {
-            console.log("Document not found");
-            return res.status(400).json("Document not found");
-          }
-        } catch (error: any) {
-          console.error("Error updating document:", error.message);
-          return res.status(400).json({
-            APIERROR: "Error updating document ",
-            message: error.message,
-          });
-        }
-      });
-
-      if (Array.isArray(publicJSONData.jsondata)) {
-        router.use(generateRoutesForArray(publicid));
-      } else if (typeof publicJSONData.jsondata === "object") {
-        const jsondata = publicJSONData.jsondata as JsonDataWithId;
-
-        // Create an array to hold all the sub-routers
-        const resourceRouters = Object.keys(jsondata).map((resource) => {
-          const resourceData = jsondata[resource];
-
-          return generateRoutes(resource, publicid, resourceData);
-        });
-
-        // Combine the sub-routers into the main router
-        resourceRouters.forEach((resourceRouter, index) => {
-          router.use(`/${Object.keys(jsondata)[index]}`, resourceRouter);
+      } catch (error: any) {
+        console.log("Error in get Object route ", error);
+        return res.status(400).json({
+          APIERROR: "Error Getting document ",
+          message: error.message,
         });
       }
-    }
+    });
 
-    // Respond with the main JSON data
-    // res.json(jsonData);
+    router.put("/", async (req, res) => {
+      try {
+        const dataBody = req.body;
+        // Find the document by ID and update it
+        const dataResult = await PublicJsonData.findById(publicid);
+
+        // Check if the document was found and updated
+        if (dataResult) {
+          let newUpdatedData = { ...dataResult.jsondata, ...dataBody };
+          const updatedDocument = await PublicJsonData.findOneAndUpdate(
+            { _id: publicIdObject },
+            { $set: { jsondata: newUpdatedData } },
+            { new: true } // Return the updated document
+          );
+          return res.status(200).json({
+            updatedDocument,
+          });
+        } else {
+          console.log("Document not found");
+          return res.status(400).json("Document not found");
+        }
+      } catch (error: any) {
+        console.error("Error updating document:", error.message);
+        return res.status(400).json({
+          APIERROR: "Error updating document ",
+          message: error.message,
+        });
+      }
+    });
+
+    // if (Array.isArray(publicJSONData.jsondata)) {
+    if (publicJSONData.routetype === "array") {
+      router.use(generateRoutesForArray(publicid));
+      // } else if (typeof publicJSONData.jsondata === "object") {
+    } else if (publicJSONData.routetype === "object") {
+      // const jsondata = publicJSONData.jsondata as JsonDataWithId;
+
+      // Create an array to hold all the sub-routers
+      // const resourceRouters = Object.keys(jsondata).map((resource) => {
+      //   const resourceData = jsondata[resource];
+
+      console.log("JSON DA|TA ", publicJSONData);
+      // return res.json({ routesList: publicJSONData["routeslist"] });
+      const resourceRouters = publicJSONData.routeslist.map((route: any) => {
+        let resource = route.routes;
+        let resourcetype = route.dataType;
+        return generateRoutes(resource, publicid, resourcetype);
+      });
+      // });
+
+      // Combine the sub-routers into the main router
+      // resourceRouters.forEach((resourceRouter:any, index:number) => {
+      //   router.use(`/${Object.keys(jsondata)[index]}`, resourceRouter);
+      // });
+
+      resourceRouters.forEach((resourceRouter: any, index: number) => {
+        let resource = publicJSONData.routeslist[index].routes;
+        console.log("Resource => ", resource);
+        router.use(`/${resource}`, resourceRouter);
+      });
+    }
+    // }
 
     router(req, res, next); // Call the main router to handle the request
   } catch (err: any) {
